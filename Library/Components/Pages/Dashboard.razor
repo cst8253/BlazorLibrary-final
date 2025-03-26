@@ -1,0 +1,94 @@
+﻿@page "/dashboard"
+@using Library.Data
+@using Library.Models
+@using Microsoft.EntityFrameworkCore
+
+@inject LibraryContext DbContext
+
+<PageTitle>Dashboard</PageTitle>
+
+<h3>Dashboard</h3>
+
+<hr/>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-4">
+            <StatCard Title="Members" Value="@memberCount"/>
+        </div>
+        <div class="col-md-4">
+            <StatCard Title="Books" Value="@bookCount"/>
+        </div>
+        <div class="col-md-4">
+            <StatCard Title="Loans" Value="@loanCount"/>
+        </div>
+    </div>
+</div>
+
+<hr/>
+
+<h4>Recent Borrowing History</h4>
+<div class="container">
+    @foreach (var borrowHistory in recentActivity)
+    {
+        <BorrowHistoryItem borrowHistory="borrowHistory"/>
+    }
+</div>
+
+@code {
+    private int memberCount;
+    private int bookCount;
+    private int loanCount;
+
+    private List<BorrowHistory> recentActivity;
+    private Book mostPopularBook;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Get stats from the database
+        memberCount = await DbContext.Members.CountAsync();
+        bookCount = await DbContext.Books.CountAsync();
+        loanCount = await DbContext.Loans.CountAsync();
+
+        // Let's find the most popular book!
+        var mostPopularBook = DbContext.Books
+            .OrderByDescending(b => b.Loans.Count)
+            .Include(b => b.Loans)
+            .First();
+
+        var hotBookCount = mostPopularBook.Loans.Count();
+
+        // Populate the Recently Borrowed History List
+        // We are going to use Project with the Select
+        // extension method to generate BorrowHistory
+        // objects for our recentActivity list!
+
+        // Get the last 10 most recent borrowed books!
+        recentActivity = await DbContext.Loans
+            .Select(l => new BorrowHistory
+            {
+                DateBorrowed = l.LoanDate,
+                DateReturned = l.ReturnDate,
+                Title = l.Book.Title,
+                BookID = l.BookID,
+                MemberName = l.Member.Name,
+                MemberID = l.MemberID,
+                Popular = l.Book.Loans.Count() >= hotBookCount
+            })
+            .OrderByDescending(l => l.DateBorrowed)
+            .Take(5)
+            .ToListAsync();
+    }
+
+    public class BorrowHistory
+    {
+        public DateTime DateBorrowed;
+        public DateTime? DateReturned;
+        public string Title;
+        public int BookID;
+        public string MemberName;
+        public int MemberID;
+        public bool Popular;
+    }
+
+}

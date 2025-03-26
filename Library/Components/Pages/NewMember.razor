@@ -1,0 +1,57 @@
+﻿@page "/members/new"
+@using Library.Data
+@using Library.Models
+
+@inject LibraryContext DbContext
+@inject NavigationManager Navigation
+
+@rendermode InteractiveServer
+
+<h3>Add a New Member</h3>
+
+<EditForm Model="newMember" FormName="NewMember" OnValidSubmit="AddMember">
+    <DataAnnotationsValidator/>
+    <ValidationSummary/>
+    <div class="form-group">
+        <label for="Name" class="form-label">Name</label>
+        <InputText id="Name" class="form-control" @bind-Value="@newMember.Name"/>
+    </div>
+
+    <div class="form-group">
+        <label for="Email" class="form-label">Email</label>
+        <InputText id="Email" class="form-control" @bind-Value="@newMember.Email"/>
+    </div>
+
+    <div class="form-group">
+        <label for="MembershipStartDate" class="form-label">Membership Start Date</label>
+        <InputDate id="MembershipStartDate" class="form-control" @bind-Value="@newMember.MembershipStartDate"/>
+    </div>
+
+    <hr/>
+
+    <button class="btn btn-success" type="submit">Add Member</button>
+    <button class="btn btn-secondary" @onclick="GoBack">Cancel</button>
+
+</EditForm>
+
+@code {
+
+    [SupplyParameterFromForm]
+    private Member newMember { get; set; } = new()
+    {
+        MembershipStartDate = DateTime.Now // Default to today's date
+    };
+
+    private async Task AddMember()
+    {
+        DbContext.Members.Add(newMember);
+        await DbContext.SaveChangesAsync();
+        Navigation.NavigateTo("/members"); // Redirect to the member list page
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/members");
+    }
+
+}

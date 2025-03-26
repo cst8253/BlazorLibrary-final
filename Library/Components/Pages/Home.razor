@@ -1,0 +1,26 @@
+﻿@page "/"
+@using Library.Data
+
+@inject LibraryContext DbContext
+
+<PageTitle>Home</PageTitle>
+
+<div class="container">
+    <div class="row justify-content-start">
+        <div class="col-md-6">
+            <h1>Welcome to the Library Application</h1>
+
+            <hr/>
+
+            <h4>
+                This application is a simple demonstration of how to build a data-driven web application using
+                <strong>Blazor</strong> and <strong>Entity Framework</strong>.
+            </h4>
+
+            <h4>
+                The Library Application allows you to manage books, members, and loan records with ease.
+                You can browse book details, track loan histories, return borrowed books, and more.
+            </h4>
+        </div>
+    </div>
+</div>

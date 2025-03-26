@@ -1,0 +1,61 @@
+﻿@page "/books/new"
+@using Library.Data
+@using Library.Models
+
+@inject LibraryContext DbContext
+@inject NavigationManager Navigation
+
+@rendermode InteractiveServer
+
+<h3>Add a New Book</h3>
+
+<EditForm Model="@newBook" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator/>
+    <ValidationSummary/>
+
+    <div class="form-group">
+        <label for="title">Title</label>
+        <InputText id="title" class="form-control" @bind-Value="newBook.Title"/>
+        <ValidationMessage For="@(() => newBook.Title)"/>
+    </div>
+
+    <div class="form-group">
+        <label for="author">Author</label>
+        <InputText id="author" class="form-control" @bind-Value="newBook.Author"/>
+        <ValidationMessage For="@(() => newBook.Author)"/>
+    </div>
+
+    <div class="form-group">
+        <label for="genre">Genre</label>
+        <InputText id="genre" class="form-control" @bind-Value="newBook.Genre"/>
+        <ValidationMessage For="@(() => newBook.Genre)"/>
+    </div>
+
+    <div class="form-group">
+        <label for="publishedYear">Published Year</label>
+        <InputNumber id="publishedYear" class="form-control" @bind-Value="newBook.PublishedYear"/>
+        <ValidationMessage For="@(() => newBook.PublishedYear)"/>
+    </div>
+
+    <hr/>
+
+    <button class="btn btn-success" type="submit">Add Book</button>
+    <button class="btn btn-secondary" @onclick="GoBack">Cancel</button>
+</EditForm>
+
+@code {
+    private readonly Book newBook = new();
+
+    private async Task HandleValidSubmit()
+    {
+        DbContext.Books.Add(newBook);
+        await DbContext.SaveChangesAsync();
+        Navigation.NavigateTo("/books"); // Redirect to the book list page
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/books");
+    }
+
+}

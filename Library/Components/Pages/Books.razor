@@ -1,0 +1,68 @@
+﻿@page "/books"
+@using Library.Data
+@using Library.Models
+@using Microsoft.EntityFrameworkCore
+
+@inject LibraryContext DbContext
+@inject NavigationManager Navigation
+
+@rendermode InteractiveServer
+
+<h3>Library Books</h3>
+
+@if (books == null)
+{
+    <p>Loading...</p>
+}
+else if (!books.Any())
+{
+    <p>No books found in the library.</p>
+    <a class="btn btn-success mb-3" href="/books/new">Add New Book</a>
+}
+else
+{
+    <a class="btn btn-success mb-3" href="/books/new">Add New Book</a>
+
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Genre</th>
+            <th>Published Year</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var book in books)
+        {
+            <tr>
+                <td>@book.Title</td>
+                <td>@book.Author</td>
+                <td>@book.Genre</td>
+                <td>@(book.PublishedYear.HasValue ? book.PublishedYear.ToString() : "Unknown")</td>
+                <td>
+                    <button class="btn btn-primary" @onclick="() => NavigateToBookDetails(book.BookID)">View Details
+                    </button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Book> books;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Get all books from the database
+        books = await DbContext.Books.ToListAsync();
+    }
+
+    private void NavigateToBookDetails(int bookId)
+    {
+        Navigation.NavigateTo($"/books/{bookId}");
+    }
+
+}

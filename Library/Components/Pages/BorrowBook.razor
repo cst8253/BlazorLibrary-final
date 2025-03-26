@@ -1,0 +1,104 @@
+﻿@page "/members/{MemberID:int}/borrow"
+@using Library.Data
+@using Library.Models
+@using Microsoft.EntityFrameworkCore
+
+@inject LibraryContext DbContext
+@inject NavigationManager Navigation
+
+@rendermode InteractiveServer
+
+<h3>Member Details</h3>
+
+@if (member == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div>
+        <h4>@member.Name</h4>
+        <p><strong>Email:</strong> @member.Email</p>
+        <p><strong>Membership Start Date:</strong> @member.MembershipStartDate.ToString("yyyy-MM-dd")</p>
+    </div>
+
+    <h4>Borrow a Book</h4>
+
+    @if (availableBooks == null)
+    {
+        <p>Loading available books...</p>
+    }
+    else if (!availableBooks.Any())
+    {
+        <p>No available books to borrow.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Genre</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var book in availableBooks)
+            {
+                <tr>
+                    <td>@book.Title</td>
+                    <td>@book.Author</td>
+                    <td>@book.Genre</td>
+                    <td>
+                        <button class="btn btn-success" @onclick="() => BorrowBookByID(book.BookID)">Borrow</button>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+}
+
+<button class="btn btn-secondary" @onclick="GoBack">Return</button>
+
+@code {
+    [Parameter] public int MemberID { get; set; }
+
+    private Member member;
+    private List<Book> availableBooks;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Get member details
+        member = await DbContext.Members
+            .Where(m => m.MemberID == MemberID)
+            .FirstOrDefaultAsync();
+
+        // Get available books
+        availableBooks = await DbContext.Books
+            .Where(b => !DbContext.Loans.Any(l => l.BookID == b.BookID && l.ReturnDate == null))
+            .ToListAsync();
+    }
+
+    private async Task BorrowBookByID(int bookId)
+    {
+        var loan = new Loan
+        {
+            BookID = bookId,
+            MemberID = MemberID,
+            LoanDate = DateTime.Now,
+            ReturnDate = null
+        };
+
+        DbContext.Loans.Add(loan);
+        await DbContext.SaveChangesAsync();
+        availableBooks.RemoveAll(b => b.BookID == bookId); // Update the UI
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo($"/members/{MemberID}");
+    }
+
+}

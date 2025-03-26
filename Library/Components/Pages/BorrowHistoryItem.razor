@@ -1,0 +1,15 @@
+﻿<p>
+    <strong><a class="link-primary" href="/books/@borrowHistory.BookID">@borrowHistory.Title</a></strong>&nbsp;
+    @if (borrowHistory.Popular)
+    {
+        <span class="badge alert-danger">Popular</span>
+    }
+    <br/>
+    <span class="ms-2"></span><small>@borrowHistory.DateBorrowed.ToShortDateString(), <strong><a class="link-secondary"
+                                                                                                 href="/members/@borrowHistory.MemberID">@borrowHistory.MemberName</a></strong>&nbsp;
+    </small>
+</p>
+
+@code {
+    [Parameter] public Dashboard.BorrowHistory borrowHistory { get; set; }
+}

@@ -1,0 +1,111 @@
+﻿@page "/books/{BookID:int}"
+@using Library.Data
+@using Library.Models
+@using Microsoft.EntityFrameworkCore
+
+@inject LibraryContext DbContext
+@inject NavigationManager Navigation
+
+@rendermode InteractiveServer
+
+<h3>Book Details</h3>
+
+@if (book == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div>
+        <h4>@book.Title</h4>
+        <p><strong>Author:</strong> @book.Author</p>
+        <p><strong>Genre:</strong> @book.Genre</p>
+        <p><strong>Published Year:</strong> @(book.PublishedYear.HasValue ? book.PublishedYear.ToString() : "Unknown")
+        </p>
+    </div>
+
+    <h4>Borrow History</h4>
+    @if (borrowHistory == null || !borrowHistory.Any())
+    {
+        <p>No borrow history for this book.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Member Name</th>
+                <th>Loan Date</th>
+                <th>Return Date</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var history in borrowHistory)
+            {
+                <tr>
+                    <td>
+                        <a href="/members/@history.MemberID">@history.MemberName</a>
+                    </td>
+                    <td>@history.LoanDate.ToString("yyyy-MM-dd")</td>
+                    <td>@(history.ReturnDate.HasValue ? history.ReturnDate.Value.ToString("yyyy-MM-dd") : "Not Returned")</td>
+                    <td>
+                        <button class="btn btn-primary" @onclick="() => NavigateToMemberDetails(history.MemberID)">View
+                            Member Details
+                        </button>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+
+    <button class="btn btn-secondary" @onclick="GoBack">Back to Member Details</button>
+}
+
+@code {
+    [Parameter] public int BookID { get; set; }
+
+    private Book book;
+    private List<BorrowHistory> borrowHistory;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Get the book details
+        book = await DbContext.Books
+            .Where(b => b.BookID == BookID)
+            .FirstOrDefaultAsync();
+
+        // Get the borrow history too
+        // Fetch borrow history for the book
+        borrowHistory = await DbContext.Loans
+            .Where(l => l.BookID == BookID)
+            .Select(l => new BorrowHistory
+            {
+                MemberID = l.MemberID,
+                MemberName = l.Member.Name,
+                LoanDate = l.LoanDate,
+                ReturnDate = l.ReturnDate
+            })
+            .ToListAsync();
+    }
+
+    private void NavigateToMemberDetails(int memberId)
+    {
+        Navigation.NavigateTo($"/members/{memberId}");
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/books");
+    }
+
+    private class BorrowHistory
+    {
+        public int MemberID { get; set; }
+        public string MemberName { get; set; }
+        public DateTime LoanDate { get; set; }
+        public DateTime? ReturnDate { get; set; }
+    }
+
+}

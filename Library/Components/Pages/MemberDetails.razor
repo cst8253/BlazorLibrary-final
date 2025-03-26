@@ -1,0 +1,161 @@
+﻿@page "/members/{MemberID:int}"
+@using Library.Data
+@using Library.Models
+@using Microsoft.EntityFrameworkCore
+
+@inject LibraryContext DbContext
+@inject NavigationManager Navigation
+
+@rendermode InteractiveServer
+
+<h3>Member Details</h3>
+
+@if (member == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div>
+        <h4>@member.Name</h4>
+        <p><strong>Email:</strong> @member.Email</p>
+        <p><strong>Membership Start Date:</strong> @member.MembershipStartDate.ToString("yyyy-MM-dd")</p>
+    </div>
+
+    <h4>Loan History</h4>
+    @if (loanHistory == null || !loanHistory.Any())
+    {
+        <p>No loan history found for this member.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Book Title</th>
+                <th>Loan Date</th>
+                <th>Return Date</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var loan in loanHistory)
+            {
+                <tr>
+                    <td>@loan.BookTitle</td>
+                    <td>@loan.LoanDate.ToString("yyyy-MM-dd")</td>
+                    <td>@(loan.ReturnDate.HasValue ? loan.ReturnDate.Value.ToString("yyyy-MM-dd") : "Not Returned")</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-primary" @onclick="() => NavigateToBookDetails(loan.BookID)">View
+                                Book Details
+                            </button>
+                            @if (!loan.ReturnDate.HasValue)
+                            {
+                                <button class="btn btn-success" @onclick="() => ReturnBook(loan.LoanID)">Return Book
+                                </button>
+                            }
+                        </div>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+
+    <button class="btn btn-secondary" @onclick="GoBack">Back to Members</button>
+    <button class="btn btn-success" @onclick="NavigateToBorrowBook">Borrow Book</button>
+}
+
+@code {
+    [Parameter] public int MemberID { get; set; }
+
+    private Member member;
+    private List<LoanHistory> loanHistory;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Get the member details
+        member = await DbContext.Members
+            .Where(m => m.MemberID == MemberID)
+            .Include(m => m.Loans)
+            .ThenInclude(l => l.Book)
+            .SingleAsync();
+
+        // Get the member's loan history
+        loanHistory = await DbContext.Loans
+            .Where(l => l.MemberID == MemberID)
+            .Select(l => new LoanHistory
+            {
+                LoanID = l.LoanID,
+                BookID = l.BookID,
+                BookTitle = l.Book.Title,
+                LoanDate = l.LoanDate,
+                ReturnDate = l.ReturnDate
+            })
+            .ToListAsync();
+
+        // Output some information to the console to demonstrate
+        // Navigation properties of Entity Framework - this code is not
+        // required for this page, it is just for demonstration and will
+        // output to the console when this page is retrieved.
+
+        // Iterate over the history of loans for this member
+        foreach (var loan in member.Loans)
+        {
+            // For each loan, get the book title from the Book property 
+            Console.WriteLine($"{member.Name} borrowed {loan.Book.Title}");
+
+            // Or, we can just use a book variable
+            var book = loan.Book;
+            Console.WriteLine($"{member.Name} borrowed {book.Title}");
+
+            // We can use data from all three entities now:
+            Console.WriteLine($"{member.Name} borrowed {book.Title} on {loan.LoanDate}");
+
+            // We can even drill into the book's navigation properties
+            Console.WriteLine($"{book.Title} has been borrowed {book.Loans.Count} times.");
+        }
+    }
+
+    private async Task ReturnBook(int loanId)
+    {
+        var loan = await DbContext.Loans.FindAsync(loanId);
+        if (loan != null && !loan.ReturnDate.HasValue)
+        {
+            loan.ReturnDate = DateTime.Now; // Set the return date to the current date
+            await DbContext.SaveChangesAsync();
+            // Update the loan history in the UI
+            var updatedLoan = loanHistory.FirstOrDefault(l => l.LoanID == loanId);
+            if (updatedLoan != null)
+            {
+                updatedLoan.ReturnDate = loan.ReturnDate;
+            }
+        }
+    }
+
+    private void NavigateToBorrowBook()
+    {
+        Navigation.NavigateTo($"/members/{MemberID}/borrow");
+    }
+
+    private void NavigateToBookDetails(int bookId)
+    {
+        Navigation.NavigateTo($"/books/{bookId}");
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/members");
+    }
+
+    private class LoanHistory
+    {
+        public int LoanID { get; set; }
+        public int BookID { get; set; }
+        public string BookTitle { get; set; }
+        public DateTime LoanDate { get; set; }
+        public DateTime? ReturnDate { get; set; }
+    }
+
+}

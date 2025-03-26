@@ -1,0 +1,67 @@
+﻿@page "/members"
+@using Library.Data
+@using Library.Models
+@using Microsoft.EntityFrameworkCore
+
+@inject LibraryContext DbContext
+@inject NavigationManager Navigation
+
+@rendermode InteractiveServer
+
+<h3>Library Members and Current Loans</h3>
+
+@if (members == null)
+{
+    <div><em>Loading...</em></div>
+}
+else
+{
+    if (!members.Any())
+    {
+        <p>No members or loans found.</p>
+        <a class="btn btn-success mb-3" href="/members/new">Add New Member</a>
+    }
+    else
+    {
+        <a class="btn btn-success mb-3" href="/members/new">Add New Member</a>
+
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th># Books Currently on Loan</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var member in members)
+            {
+                <tr>
+                    <td>@member.Name</td>
+                    <td>@member.Email</td>
+                    <td>@member.Loans.Count(l => l.ReturnDate == null)</td>
+                    <td>
+                        <button class="btn btn-primary" @onclick="() => NavigateToDetails(member.MemberID)">View Details
+                        </button>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    private List<Member> members;
+
+    protected override async Task OnInitializedAsync()
+    {
+        members = await DbContext.Members.Include(m => m.Loans).ToListAsync();
+    }
+
+    private void NavigateToDetails(int memberId)
+    {
+        Navigation.NavigateTo($"/members/{memberId}");
+    }
+}
